@@ -1,0 +1,97 @@
+services:
+
+  master:
+    image: hadoop-spark-master
+    hostname: master
+    container_name: master
+    environment:
+      SPARK_MASTER_HOST: master
+      SPARK_LOCAL_HOSTNAME: master
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+      - "9870:9870"
+      - "4040:4040"
+    volumes:
+      - namenode:/opt/hadoop/dfs/name
+    restart: always
+    networks:
+      - sparknet
+
+  worker1:
+    image: hadoop-spark-worker
+    hostname: worker1
+    container_name: worker1
+    depends_on:
+      - master
+    environment:
+      SPARK_MASTER_HOST: master
+      SPARK_LOCAL_HOSTNAME: worker1
+    ports:
+      - "8081:8081"
+    volumes:
+      - datanode1:/opt/hadoop/dfs/data
+    restart: always
+    networks:
+      - sparknet
+
+  worker2:
+    image: hadoop-spark-worker
+    hostname: worker2
+    container_name: worker2
+    depends_on:
+      - master
+    environment:
+      SPARK_MASTER_HOST: master
+      SPARK_LOCAL_HOSTNAME: worker2
+    ports:
+      - "8082:8081"
+    volumes:
+      - datanode2:/opt/hadoop/dfs/data
+    restart: always
+    networks:
+      - sparknet
+
+  history:
+    image: hadoop-spark-history
+    hostname: history
+    container_name: history
+    depends_on:
+      - master
+      - worker1
+      - worker2
+    environment:
+      SPARK_MASTER_HOST: master
+      SPARK_LOCAL_HOSTNAME: history
+    ports:
+      - "18080:18080"
+      - "19888:19888"
+    restart: always
+    networks:
+      - sparknet
+
+  jupyter:
+    image: hadoop-spark-jupyter:latest
+    hostname: jupyter
+    container_name: jupyter
+    depends_on:
+      - master
+      - worker1
+      - worker2
+      - history
+    ports:
+        - "443:8888"
+    volumes:
+        - ./jupyter/notebook:/home/jupyter
+    networks:
+      - sparknet
+
+volumes:
+  namenode:
+  datanode1:
+  datanode2:
+
+networks:
+  sparknet:
+      name: sparknet
+      driver: bridge
